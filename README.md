@@ -1,101 +1,87 @@
-# Pyth Crosschain
+# Pyth Oracle AMM
 
-This repository acts as a monorepo for the various components that make up
-Pyth Crosschain.
+This directory contains an example oracle AMM application using Pyth price feeds.
+The oracle AMM manages a pool of two tokens and allows a user to trade with the pool at the current Pyth price.
 
-Within this monorepo you will find the following subprojects:
+This application has two components. The first component is a smart contract (in the `contract` directory) that manages the pool and implements the trading functionality.
+The second is a frontend application (in the `app` directory) that communicates with the smart contract.
 
-## Wormhole Attester
+Please see the [Pyth documentation](https://docs.pyth.network/pythnet-price-feeds) for more information about Pyth and how to integrate it into your application.
 
-> wormhole_attester
+**Warning** this AMM is intended only as a demonstration of Pyth price feeds and is **not for production use**.
 
-The main Pyth implementation currently exists as an [on-chain contract][] on
-Pythnet, a separate instance of the Solana blockchain. In order to expose
-these prices cross-chain, the Wormhole Attester contract acts as a sender for Pyth prices. At regular intervals the Pyth
-contract will observe the current Pyth price for selected products, and produce
-an attestation which is then relayed over Wormhole to be consumed by the
-various receiver contracts.
+## AMM Contract
 
-[on-chain contract]: https://github.com/pyth-network/pyth-client
+All of the commands in this section expect to be run from the `contract` directory.
 
-## Target Chains
+### Building
 
-> target_chains
-
-This directory contains on-chain contracts and SDKs for all of the various
-blockchain runtimes that Pyth supports. Each subdirectory corresponds to a
-blockchain runtime. Inside each subdirectory, there are subfolders for
-contracts, SDKs, and examples.
-
-## Price Service
-
-> price_service
-
-The Price Service is an off-chain service which constantly observes the
-Wormhole network watching for price attestations emitted from the Pyth
-contract. It exposes all observed attestations via a public API over HTTPS/WSS
-which can be consumed by client-side applications that wish to use Pyth pricing
-data.
-
-The `client` subdirectory provides an SDK for interacting with the price service.
-However, most users will interact with the price service via a chain-specific SDK
-
-For a guide on utilising this service in your project, see the chain-specific SDK
-and examples for your blockchain runtime in the `target_chains` directory.
-
-## Development
-
-### Releases
-
-The repository has a CI workflow that will release javascript packages whose version number has changed.
-To perform a release, follow these steps:
-
-1. Update the version number in the `package.json` file for the package(s) you wish to release. Please follow [Semantic Versioning](https://semver.org/) for package versions.
-2. Submit a PR with the changes and merge them in to main.
-3. Create a new release in github with a tag of the form `pyth-js-v<number>`. You can simply increment the version number each time -- it doesn't affect any of the published information.
-4. When this release is published, it will automatically trigger a CI workflow to publish the updated packages to NPM.
-
-If you have a javascript package that shouldn't be published, simply add `"private": "true"` to the `package.json` file
-and it will be excluded from the publishing workflow. If you are creating a new public javascript package, you should add
-the following config option to `package.json`:
+You need to have [Foundry](https://getfoundry.sh/) and `node` installed to run this example.
+Once you have installed these tools, run the following commands from the [`contract`](./contract) directory:
 
 ```
-  "publishConfig": {
-    "access": "public"
-  },
+forge install foundry-rs/forge-std@2c7cbfc6fbede6d7c9e6b17afe997e3fdfe22fef --no-git --no-commit
+forge install pyth-network/pyth-sdk-solidity@v2.2.0 --no-git --no-commit
+forge install OpenZeppelin/openzeppelin-contracts@v4.8.1 --no-git --no-commit
 ```
 
-### pre-commit hooks
+### Testing
 
-pre-commit is a tool that checks and fixes simple issues (formatting, ...) before each commit. You can install it by following [their website](https://pre-commit.com/). In order to enable checks for this repo run `pre-commit install` from command-line in the root of this repo.
+Simply run `forge test` in the [`contract`](./contract) directory. This command will run the
+tests located in the [`contract/test`](./contract/test) directory.
 
-The checks are also performed in the CI to ensure the code follows consistent formatting.
+### Deploying
 
-### Tilt CI
+To deploy the contract, you first need to configure the target network and the tokens in the AMM pool.
+Edit the configuration parameters in the [deploy script](./contract/scripts/deploy.sh) and then run it using `./scripts/deploy.sh`.
+The code comments in that file should help you populate the parameters correctly.
 
-Integration tests run in Tilt (via the `tilt ci` command). The Tilt CI workflow requires approval from a member of the Pyth team. If you are a member, click on "Details" next to the "Workflow / ci-pyth-crosschain" check in a pull request, and then on the "Resume" button on the workflow page.
+If you don't have ERC-20 tokens to test with, you can use the [token deploy script](./contract/scripts/deploy_token.sh) to create some for testing.
+Edit the configuration parameters in there before running to set the network and token name.
+This will deploy a new mock token and print out a contract address.
+Once you have this address, you can mint the token anytime using the following command:
 
-### Typescript Monorepo
+```
+cast send --rpc-url <RPC_URL> -l <ERC20_CONTRACT_ADDRESS> "mint(address,uint256)" <YOUR_WALLET_ADDRESS> <QUANTITY_IN_WEI>
+```
 
-All of the typescript / javascript packages in this repository are part of a lerna monorepo.
-This setup allows each package to reference the current version of the others.
-You can install dependencies using `npm ci` from the repository root.
-You can build all of the packages using `npx lerna run build` and test with `npx lerna run test`.
+When the contract is deployed, the token pools are initially empty.
+You will need to send some funds to the pool for testing purposes.
+You can use the following command to transfer ERC-20 tokens from your wallet to the contract:
 
-Lerna has some common failure modes that you may encounter:
+```
+cast send --rpc-url <RPC_URL> -l <ERC20_CONTRACT_ADDRESS> "transfer(address,uint256)" <DESTINATION_ADDRESS> <QUANTITY_IN_WEI>
+```
 
-1. `npm ci` fails with a typescript compilation error about a missing package.
-   This error likely means that the failing package has a `prepare` entry compiling the typescript in its `package.json`.
-   Fix this error by moving that logic to the `prepublishOnly` entry.
-1. The software builds locally but fails in CI, or vice-versa.
-   This error likely means that some local build caches need to be cleaned.
-   The build error may not indicate that this is a caching issue, e.g., it may appear that the packages are being built in the wrong order.
-   Delete `node_modules/`, `lib/` and `tsconfig.tsbuildinfo` from each package's subdirectory. then try again.
+### Create ABI
 
-## Audit / Feature Status
+If you change the contract, you will need to create a new ABI.
+The frontend uses this ABI to create transactions.
+You can overwrite the existing ABI by running the following command:
 
-⚠ **This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-implied. See the License for the specific language governing permissions and limitations under the License.** Or plainly
-spoken - this is a very complex piece of software which targets a bleeding-edge, experimental smart contract runtime.
-Mistakes happen, and no matter how hard you try and whether you pay someone to audit it, it may eat your tokens, set
-your printer on fire or startle your cat. Cryptocurrencies are a high-risk investment, no matter how fancy.
+```
+forge inspect OracleSwap abi > ../app/src/abi/OracleSwapAbi.json
+```
+
+## Frontend Application
+
+All of the commands in this section assume you are in the `app` directory.
+
+By default, the frontend is configured to use the already deployed version of the oracle AMM
+at address [`0x15F9ccA28688F5E6Cbc8B00A8f33e8cE73eD7B02`](https://mumbai.polygonscan.com/address/0x15F9ccA28688F5E6Cbc8B00A8f33e8cE73eD7B02) on Polygon Mumbai.
+This means you can start playing with the application without going through the steps above (Remember to switch your wallet to Mumbai and to claim funds from a faucet to pay for the gas).
+
+### Build
+
+`npm ci`
+
+### Run
+
+`npm run start`
+
+### Other configurations:
+
+optimism goerli addresses
+brl 0x8e2a09b54fF35Cc4fe3e7dba68bF4173cC559C69
+usd 0x98cDc14fe999435F3d4C2E65eC8863e0d70493Df
+swap contract 0xf3161b2B32761B46C084a7e1d8993C19703C09e7
