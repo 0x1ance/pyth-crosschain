@@ -40,7 +40,7 @@ contract OracleSwap {
     uint256 public totalBaseFees; // total fees collected in base tokens
     uint256 public totalQuoteFees; // total fees collected in quote tokens
 
-    uint256 public claimInterval = 1000; // number of blocks between fee claims
+    uint256 public claimInterval = 2; // number of blocks between fee claims
 
     IPyth pyth;
 
@@ -110,12 +110,16 @@ contract OracleSwap {
 
             quoteToken.transferFrom(msg.sender, address(this), quoteSize);
             baseToken.transfer(msg.sender, size);
+
+            totalQuoteFees += fee;
         } else {
             uint256 fee = (size * swapFeeBasisPoints) / 10000;
             size += fee;
 
             baseToken.transferFrom(msg.sender, address(this), size);
             quoteToken.transfer(msg.sender, quoteSize);
+
+            totalBaseFees += fee;
         }
     }
 

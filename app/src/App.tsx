@@ -8,11 +8,15 @@ import {
 } from "@pythnetwork/pyth-evm-js";
 import { useMetaMask } from "metamask-react";
 import Web3 from "web3";
-import { ChainState, ExchangeRateMeta, tokenQtyToNumber } from "./utils";
+import { BlockMeta, ChainState, ExchangeRateMeta, LiquidityInfo, tokenQtyToNumber } from "./utils";
 import { OrderEntry } from "./OrderEntry";
 import { PriceText } from "./PriceText";
 import { MintButton } from "./MintButton";
-import { getBalance } from "./erc20";
+import { getApprovedQuantity, getBalance } from "./erc20";
+import { getLiquidityInfo } from "./swap";
+import { BigNumber } from "ethers";
+import LiquidityEntry from "./LiquidityEntry";
+import clsx from "clsx";
 
 const CONFIG = {
   // Each token is configured with its ERC20 contract address and Pyth Price Feed ID.
@@ -32,7 +36,7 @@ const CONFIG = {
       "1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588",
     decimals: 18,
   },
-  swapContractAddress: "0x40ea93403aff9eef0e1c55d484c9986082bdb56e",
+  swapContractAddress: "0x555302251fC77dea3Ef7feb672Aa0c11DdC4Cd48",
   pythContractAddress: "0xff1a0f4744e8582DF1aE09D5611b887B6a12925C",
   priceServiceUrl: "https://xc-testnet.pyth.network",
   mintQty: 100,
@@ -52,7 +56,8 @@ function App() {
   const [chainState, setChainState] = useState<ChainState | undefined>(
     undefined
   );
-
+  const [liquidityInfo, setLiquidtyInfo] = useState<LiquidityInfo | undefined>(undefined);
+  const [blockMeta, setBlockMeta] = useState<BlockMeta | undefined>(undefined)
   useEffect(() => {
     async function refreshChainState() {
       if (web3 !== undefined && account !== null) {
@@ -78,8 +83,11 @@ function App() {
             CONFIG.swapContractAddress
           ),
         });
+        setLiquidtyInfo(await getLiquidityInfo(web3, CONFIG.swapContractAddress, account))
+        setBlockMeta({ currentBlockNum: await web3.eth.getBlockNumber(), lastUpdatedTime: new Date() });
       } else {
         setChainState(undefined);
+        setLiquidtyInfo(undefined)
       }
     }
 
@@ -173,6 +181,9 @@ function App() {
             </button>
           )}
         </div>
+        <div>
+
+        </div>
 
         <div>
           <h3>Wallet Balances</h3>
@@ -254,9 +265,60 @@ function App() {
             <p>loading...</p>
           )}
         </div>
+
+        {
+          liquidityInfo ?
+            <>
+              <div className='mt-4 w-full rounded-xl border border-white p-3'>
+                <div className="font-extrabold underline">AMM Liquidity Info</div>
+                <div className='mt-2 grid grid-cols-2'>
+                  <div>SwapFeeBasisPoints: {
+                    liquidityInfo.swapFeeBasisPoints
+                  }</div>
+                  <div>ClaimInterval: {
+                    liquidityInfo.claimInterval
+                  }{' '} blocks</div>
+                  <div>Total BRL liquidity: {tokenQtyToNumber(
+                    liquidityInfo.totalBaseLiquidity,
+                    CONFIG.baseToken.decimals
+                  )}</div>
+                  <div>Total USD liquidity: {tokenQtyToNumber(
+                    liquidityInfo.totalQuoteLiquidity,
+                    CONFIG.quoteToken.decimals
+                  )}</div>
+                  <div>Total BRL fees: {tokenQtyToNumber(
+                    liquidityInfo.totalBaseFees,
+                    CONFIG.baseToken.decimals
+                  )}</div>
+                  <div>Total USD fees: {tokenQtyToNumber(
+                    liquidityInfo.totalQuoteFees,
+                    CONFIG.quoteToken.decimals
+                  )}</div>
+                </div>
+              </div>
+              <div className='mt-4 w-full rounded-xl border border-white p-3'>
+                <div className="font-extrabold underline">User Liquidity Info</div>
+                <div className='mt-2 grid grid-cols-2'>
+                  <div>BRL liquidity: {tokenQtyToNumber(
+                    liquidityInfo.baseAmt,
+                    CONFIG.baseToken.decimals
+                  )}</div>
+                  <div>USD token liquidity: {tokenQtyToNumber(
+                    liquidityInfo.quoteAmt,
+                    CONFIG.quoteToken.decimals
+                  )}</div>
+                  <div>Last claim block number: {liquidityInfo.lastClaimBlockNum}</div>
+                  <div>Last update block number: {liquidityInfo.lastUpdateBlockNum}</div>
+                </div>
+              </div>
+            </>
+
+            : <></>
+        }
+
       </div>
 
-      <div className={"main"}>
+      <div className={clsx("main",'h-[100vh] overflow-y-scroll py-10')}>
         <h3>
           Swap between {CONFIG.baseToken.name} and {CONFIG.quoteToken.name}
         </h3>
@@ -293,6 +355,15 @@ function App() {
             pythContractAddress={CONFIG.pythContractAddress}
             swapContractAddress={CONFIG.swapContractAddress}
           />
+        </div>
+
+        <div className='mt-8'>
+          {
+            blockMeta && liquidityInfo ? web3 && account ?
+              <LiquidityEntry web3={web3} account={account} blockMeta={blockMeta} liquidityInfo={liquidityInfo} baseToken={CONFIG.baseToken} quoteToken={CONFIG.quoteToken} swapContractAddress={CONFIG.swapContractAddress} />
+              : <div>Connect your wallet to provide liquidity</div>
+              : 'loading...'
+          }
         </div>
       </div>
     </div>

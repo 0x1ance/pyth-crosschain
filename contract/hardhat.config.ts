@@ -12,7 +12,7 @@ const config: HardhatUserConfig = {
     }
   },
   typechain: {
-    outDir: './typechain-types',
+    outDir: '../app/generated/typechain-types',
     target: 'ethers-v5',
     alwaysGenerateOverloads: false,
     externalArtifacts: ['externalArtifacts/*.json'],

@@ -14,7 +14,7 @@ QUOTE_FEED_ID="0x1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c158
 BASE_ERC20_ADDR="0xB3a2EDFEFC35afE110F983E32Eb67E671501de1f"
 QUOTE_ERC20_ADDR="0x8C65F3b18fB29D756d26c1965d84DBC273487624"
 
-ROOT_WALLET_PRIVATE_KEY=random
+ROOT_WALLET_PRIVATE_KEY=0cc19d46dfd2826825ce20da1254137ced040e2500db993589c83ff60cbe3fea
 
 # Note the -l here uses a ledger wallet to deploy your contract. You may need to change this
 # option if you are using a different wallet.

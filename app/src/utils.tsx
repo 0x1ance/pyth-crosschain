@@ -12,11 +12,29 @@ export interface ExchangeRateMeta {
   lastUpdatedTime: Date;
 }
 
+export interface BlockMeta {
+  currentBlockNum: number;
+  lastUpdatedTime: Date;
+}
+
 export interface ChainState {
   accountBaseBalance: BigNumber;
   accountQuoteBalance: BigNumber;
   poolBaseBalance: BigNumber;
   poolQuoteBalance: BigNumber;
+}
+
+export interface LiquidityInfo {
+  baseAmt: BigNumber;
+  quoteAmt: BigNumber;
+  lastUpdateBlockNum: number;
+  lastClaimBlockNum: number;
+  totalBaseLiquidity: BigNumber;
+  totalQuoteLiquidity: BigNumber;
+  swapFeeBasisPoints: number
+  totalBaseFees: BigNumber;
+  totalQuoteFees: BigNumber;
+  claimInterval: number;
 }
 
 /**

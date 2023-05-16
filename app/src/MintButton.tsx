@@ -11,7 +11,7 @@ export function MintButton(props: {
   decimals: number;
 }) {
   return (
-    <button
+    <button className='border border-white p-1 bg-white text-black rounded-xl cursor-pointer hover:bg-gray-200'
       onClick={async () => {
         await mint(
           props.web3,
