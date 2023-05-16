@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "forge-std/Test.sol";
 import "../src/OracleSwap.sol";
+import "forge-std/Test.sol";
 import "pyth-sdk-solidity/MockPyth.sol";
 import "openzeppelin-contracts/contracts/mocks/ERC20Mock.sol";
 
@@ -110,13 +110,22 @@ contract OracleSwapTest is Test {
 
         doSwap(10, 1, true, 1e18);
 
-        assertEq(quoteToken.balanceOf(address(this)), 10e18 - 1);
+        uint256 quoteRemainFirst = 10e18 -
+            1 -
+            (10e18 * swap.swapFeeBasisPoints()) /
+            10000;
+        assertEq(quoteToken.balanceOf(address(this)), quoteRemainFirst);
         assertEq(baseToken.balanceOf(address(this)), 21e18);
 
         doSwap(10, 1, false, 1e18);
 
-        assertEq(quoteToken.balanceOf(address(this)), 20e18 - 1);
-        assertEq(baseToken.balanceOf(address(this)), 20e18);
+        uint256 quoteRemainSecond = quoteRemainFirst + 10e18;
+        uint256 baseRemindSecond = 21e18 -
+            1e18 -
+            (1e18 * swap.swapFeeBasisPoints()) /
+            10000;
+        assertEq(quoteToken.balanceOf(address(this)), quoteRemainSecond);
+        assertEq(baseToken.balanceOf(address(this)), baseRemindSecond);
     }
 
     function testWithdraw() public {
@@ -128,6 +137,48 @@ contract OracleSwapTest is Test {
         assertEq(baseToken.balanceOf(address(this)), 20e18);
         assertEq(quoteToken.balanceOf(address(swap)), 0);
         assertEq(baseToken.balanceOf(address(swap)), 0);
+    }
+
+    function testAddLiquidity() public {
+        setupTokens(20e18, 20e18, 20e18, 20e18);
+
+        baseToken.approve(address(swap), MAX_INT);
+        quoteToken.approve(address(swap), MAX_INT);
+
+        (uint256 baseAmtBefore, uint256 quoteAmtBefore, , ) = swap
+            .liquidityBalance(address(this));
+
+        swap.addLiquidity(10e18, 12e18);
+
+        (uint256 baseAmtAfter, uint256 quoteAmtAfter, , ) = swap
+            .liquidityBalance(address(this));
+
+        assertEq(baseAmtAfter, baseAmtBefore + 10e18);
+        assertEq(quoteAmtAfter, quoteAmtBefore + 12e18);
+        assertEq(baseToken.balanceOf(address(this)), 10e18);
+        assertEq(quoteToken.balanceOf(address(this)), 8e18);
+    }
+
+    function testRemoveLiquidity() public {
+        setupTokens(20e18, 20e18, 20e18, 20e18);
+
+        baseToken.approve(address(swap), MAX_INT);
+        quoteToken.approve(address(swap), MAX_INT);
+
+        swap.addLiquidity(10e18, 10e18);
+
+        (uint256 baseAmtBefore, uint256 quoteAmtBefore, , ) = swap
+            .liquidityBalance(address(this));
+
+        swap.removeLiquidity(8e18, 8e18);
+
+        (uint256 baseAmtAfter, uint256 quoteAmtAfter, , ) = swap
+            .liquidityBalance(address(this));
+
+        assertEq(baseAmtAfter, baseAmtBefore - 8e18);
+        assertEq(quoteAmtAfter, quoteAmtBefore - 8e18);
+        assertEq(baseToken.balanceOf(address(this)), 18e18);
+        assertEq(quoteToken.balanceOf(address(this)), 18e18);
     }
 
     receive() external payable {}
