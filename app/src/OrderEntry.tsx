@@ -7,6 +7,7 @@ import IPythAbi from "@pythnetwork/pyth-sdk-solidity/abis/IPyth.json";
 import OracleSwapAbi from "./abi/OracleSwapAbi.json";
 import { approveToken, getApprovedQuantity } from "./erc20";
 import { EvmPriceServiceConnection } from "@pythnetwork/pyth-evm-js";
+import clsx from "clsx";
 
 /**
  * The order entry component lets users enter a quantity of the base token to buy/sell and submit
@@ -102,6 +103,7 @@ export function OrderEntry(props: {
         <p>
           {props.isBuy ? "Buy" : "Sell"}
           <input
+            className='shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
             type="text"
             name="base"
             value={qty}
@@ -138,6 +140,7 @@ export function OrderEntry(props: {
           <div>
             1.{" "}
             <button
+              className={clsx(isAuthorized ? "bg-blue-500 text-white font-bold py-2 px-4 rounded opacity-20 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded")}
               onClick={async () => {
                 await approveToken(
                   props.web3!,
@@ -153,6 +156,7 @@ export function OrderEntry(props: {
             </button>
             2.
             <button
+              className={clsx(isAuthorized ? "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" : "bg-blue-500 text-white font-bold py-2 px-4 rounded opacity-20 cursor-not-allowed")}
               onClick={async () => {
                 await sendSwapTx(
                   props.web3!,
@@ -190,6 +194,7 @@ async function sendSwapTx(
   isBuy: boolean
 ) {
   const pythPriceService = new EvmPriceServiceConnection(priceServiceUrl);
+
   const priceFeedUpdateData = await pythPriceService.getPriceFeedsUpdateData([
     baseTokenPriceFeedId,
     quoteTokenPriceFeedId,
@@ -201,7 +206,7 @@ async function sendSwapTx(
   );
 
   const updateFee = await pythContract.methods
-    .getUpdateFee(priceFeedUpdateData.length)
+    .getUpdateFee(priceFeedUpdateData)
     .call();
 
   const swapContract = new web3.eth.Contract(
