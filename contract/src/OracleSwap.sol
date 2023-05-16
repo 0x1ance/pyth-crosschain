@@ -178,6 +178,8 @@ contract OracleSwap {
             "Invalid liquidity"
         );
 
+        record.lastUpdateBlockNum = block.number;
+
         if (baseAmt > 0) {
             totalBaseLiquidity -= baseAmt;
             record.baseAmt -= baseAmt;
@@ -203,9 +205,10 @@ contract OracleSwap {
         uint256 anchor = record.lastUpdateBlockNum > record.lastClaimBlockNum
             ? record.lastUpdateBlockNum
             : record.lastClaimBlockNum;
+        require(anchor + claimInterval < block.number, "Too soon");
         require(
-            anchor + claimInterval < block.number,
-            "Too soon"
+            totalBaseFees > 0 || totalQuoteFees > 0,
+            "Insufficient balance"
         );
 
         uint256 baseClaim = (totalBaseFees * record.baseAmt) /
@@ -215,6 +218,9 @@ contract OracleSwap {
             totalQuoteLiquidity;
 
         record.lastClaimBlockNum = block.number;
+
+        totalBaseFees -= baseClaim;
+        totalQuoteFees -= quoteClaim;
 
         baseToken.transfer(msg.sender, baseClaim);
         quoteToken.transfer(msg.sender, quoteClaim);

@@ -47,7 +47,7 @@ forge inspect OracleSwap abi > ../app/src/abi/OracleSwapAbi.json
 All of the commands in this section assume you are in the `app` directory.
 
 By default, the frontend has been configured to the newly deployed version of the oracle AMM
-at address [`0xCab2e8D01C17530F1dD83B1681AF3691560c876c`](https://mumbai.polygonscan.com/address/0xCab2e8D01C17530F1dD83B1681AF3691560c876c) on Polygon Mumbai.
+at address [`0xB8ded0DAc4aCfCBDFD63C8Af8Ced16834961AD76`](https://mumbai.polygonscan.com/address/0xB8ded0DAc4aCfCBDFD63C8Af8Ced16834961AD76) on Polygon Mumbai.
 
 ### Build
 
