@@ -40,7 +40,7 @@ contract OracleSwap {
     uint256 public totalBaseFees; // total fees collected in base tokens
     uint256 public totalQuoteFees; // total fees collected in quote tokens
 
-    uint256 public claimInterval = 1000; // number of blocks between fee claims
+    uint256 public claimInterval = 10; // number of blocks between fee claims
 
     IPyth pyth;
 

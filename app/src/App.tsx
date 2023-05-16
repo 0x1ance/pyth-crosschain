@@ -36,7 +36,7 @@ const CONFIG = {
       "1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c1588",
     decimals: 18,
   },
-  swapContractAddress: "0x555302251fC77dea3Ef7feb672Aa0c11DdC4Cd48",
+  swapContractAddress: "0xCab2e8D01C17530F1dD83B1681AF3691560c876c",
   pythContractAddress: "0xff1a0f4744e8582DF1aE09D5611b887B6a12925C",
   priceServiceUrl: "https://xc-testnet.pyth.network",
   mintQty: 100,
