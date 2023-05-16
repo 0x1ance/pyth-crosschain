@@ -190,10 +190,12 @@ async function sendSwapTx(
   isBuy: boolean
 ) {
   const pythPriceService = new EvmPriceServiceConnection(priceServiceUrl);
+  console.log({ pythPriceService })
   const priceFeedUpdateData = await pythPriceService.getPriceFeedsUpdateData([
     baseTokenPriceFeedId,
     quoteTokenPriceFeedId,
   ]);
+  console.log({ priceFeedUpdateData })
 
   const pythContract = new web3.eth.Contract(
     IPythAbi as any,
@@ -201,9 +203,10 @@ async function sendSwapTx(
   );
 
   const updateFee = await pythContract.methods
-    .getUpdateFee(priceFeedUpdateData.length)
+    .getUpdateFee(priceFeedUpdateData)
     .call();
 
+  console.log({ updateFee })
   const swapContract = new web3.eth.Contract(
     OracleSwapAbi as any,
     swapContractAddress

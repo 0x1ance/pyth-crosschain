@@ -14,10 +14,12 @@ QUOTE_FEED_ID="0x1fc18861232290221461220bd4e2acd1dcdfbc89c84092c93c18bdc7756c158
 BASE_ERC20_ADDR="0xB3a2EDFEFC35afE110F983E32Eb67E671501de1f"
 QUOTE_ERC20_ADDR="0x8C65F3b18fB29D756d26c1965d84DBC273487624"
 
+ROOT_WALLET_PRIVATE_KEY=random
+
 # Note the -l here uses a ledger wallet to deploy your contract. You may need to change this
 # option if you are using a different wallet.
 forge create src/OracleSwap.sol:OracleSwap \
-  -l \
+  --private-key $ROOT_WALLET_PRIVATE_KEY \
   --rpc-url $RPC_URL \
   --constructor-args \
   $PYTH_CONTRACT_ADDRESS \
