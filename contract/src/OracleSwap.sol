@@ -4,6 +4,16 @@ pragma solidity ^0.8.0;
 import "pyth-sdk-solidity/IPyth.sol";
 import "pyth-sdk-solidity/PythStructs.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+// import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+// import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+struct LiquidityRecord {
+    uint256 baseAmt;
+    uint256 quoteAmt;
+    uint256 lastUpdateBlockNum;
+    uint256 lastClaimBlockNum;
+}
 
 // Example oracle AMM powered by Pyth price feeds.
 //
@@ -18,6 +28,19 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 // the contract's address).
 contract OracleSwap {
     event Transfer(address from, address to, uint amountUsd, uint amountWei);
+    event AddLiquidity(address provider, uint baseAmt, uint quoteAmt);
+    event RemoveLiquidity(address provider, uint baseAmt, uint quoteAmt);
+
+    uint256 public totalBaseLiquidity; // total liquidity provided in base tokens
+    uint256 public totalQuoteLiquidity; // total liquidity provided in quote tokens
+    mapping(address => LiquidityRecord) public liquidityBalance; // liquidity provided by each user
+
+    // Swap fee in basis points (i.e., over 10000)
+    uint256 public swapFeeBasisPoints = 50;
+    uint256 public totalBaseFees; // total fees collected in base tokens
+    uint256 public totalQuoteFees; // total fees collected in quote tokens
+
+    uint256 public claimInterval = 1000; // number of blocks between fee claims
 
     IPyth pyth;
 
@@ -82,9 +105,15 @@ contract OracleSwap {
             // (Round up)
             quoteSize += 1;
 
+            uint256 fee = (quoteSize * swapFeeBasisPoints) / 10000;
+            quoteSize += fee;
+
             quoteToken.transferFrom(msg.sender, address(this), quoteSize);
             baseToken.transfer(msg.sender, size);
         } else {
+            uint256 fee = (size * swapFeeBasisPoints) / 10000;
+            size += fee;
+
             baseToken.transferFrom(msg.sender, address(this), size);
             quoteToken.transfer(msg.sender, quoteSize);
         }
@@ -110,6 +139,78 @@ contract OracleSwap {
                 uint(uint64(price.price)) /
                 10 ** uint32(priceDecimals - targetDecimals);
         }
+    }
+
+    // allow user to add liquidity to the pool
+    function addLiquidity(uint256 baseAmt, uint256 quoteAmt) external {
+        require(baseAmt > 0 || quoteAmt > 0, "Invalid amount");
+
+        LiquidityRecord storage record = liquidityBalance[msg.sender];
+
+        record.lastUpdateBlockNum = block.number;
+
+        if (baseAmt > 0) {
+            totalBaseLiquidity += baseAmt;
+            record.baseAmt += baseAmt;
+            baseToken.transferFrom(msg.sender, address(this), baseAmt);
+        }
+        if (quoteAmt > 0) {
+            totalQuoteLiquidity += quoteAmt;
+            record.quoteAmt += quoteAmt;
+            quoteToken.transferFrom(msg.sender, address(this), quoteAmt);
+        }
+
+        emit AddLiquidity(msg.sender, baseAmt, quoteAmt);
+    }
+
+    // allow user to remove liquidity from the pool
+    function removeLiquidity(uint256 baseAmt, uint256 quoteAmt) external {
+        LiquidityRecord storage record = liquidityBalance[msg.sender];
+
+        require(
+            (baseAmt > 0 || quoteAmt > 0) &&
+                baseAmt <= record.baseAmt &&
+                quoteAmt <= record.quoteAmt,
+            "Invalid liquidity"
+        );
+
+        if (baseAmt > 0) {
+            totalBaseLiquidity -= baseAmt;
+            record.baseAmt -= baseAmt;
+
+            baseToken.transfer(msg.sender, baseAmt);
+        }
+        if (quoteAmt > 0) {
+            totalQuoteLiquidity -= quoteAmt;
+            record.quoteAmt -= quoteAmt;
+            quoteToken.transfer(msg.sender, quoteAmt);
+        }
+
+        emit RemoveLiquidity(msg.sender, baseAmt, quoteAmt);
+    }
+
+    // allow user to claim fees
+    // design: user must wait a certain number of blocks between claims
+    // after update to liquidity, user must wait a certain number of blocks before claiming too,
+    // which incentivise user to provide more liquidity when the total fee pool is large
+    // even when the liquidity pool size shrink, it incentivise user to stay inside the liquidity pool as the got higher proportion of the fee pool
+    function claimFees() external {
+        LiquidityRecord storage record = liquidityBalance[msg.sender];
+        require(
+            record.lastClaimBlockNum + claimInterval < block.number,
+            "Too soon"
+        );
+
+        uint256 baseClaim = (totalBaseFees * record.baseAmt) /
+            totalBaseLiquidity;
+
+        uint256 quoteClaim = (totalQuoteFees * record.quoteAmt) /
+            totalQuoteLiquidity;
+
+        record.lastClaimBlockNum = block.number;
+
+        baseToken.transfer(msg.sender, baseClaim);
+        quoteToken.transfer(msg.sender, quoteClaim);
     }
 
     // Get the number of base tokens in the pool
