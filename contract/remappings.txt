@@ -2,3 +2,5 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 pyth-sdk-solidity/=lib/pyth-sdk-solidity/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
+@pythnetwork/=node_modules/@pythnetwork/
+@openzeppelin/=node_modules/@openzeppelin/
