@@ -52,7 +52,7 @@ const RemoveLiquidityEntry: FC<{
                 <div className='font-bold'>Withdraw Liquidity</div>
                 <div className='grid grid-cols-1'>
                     <div>
-                        add
+                        withdraw
                         <input
                             type="text"
                             name="base"
@@ -65,7 +65,7 @@ const RemoveLiquidityEntry: FC<{
                         {baseToken.name}{' '}
                     </div>
                     <div>
-                        add
+                        withdraw
                         <input
                             className='shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline'
                             type="text"

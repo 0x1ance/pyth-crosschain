@@ -40,7 +40,7 @@ contract OracleSwap {
     uint256 public totalBaseFees; // total fees collected in base tokens
     uint256 public totalQuoteFees; // total fees collected in quote tokens
 
-    uint256 public claimInterval = 2; // number of blocks between fee claims
+    uint256 public claimInterval = 1000; // number of blocks between fee claims
 
     IPyth pyth;
 
@@ -200,8 +200,11 @@ contract OracleSwap {
     // even when the liquidity pool size shrink, it incentivise user to stay inside the liquidity pool as the got higher proportion of the fee pool
     function claimFees() external {
         LiquidityRecord storage record = liquidityBalance[msg.sender];
+        uint256 anchor = record.lastUpdateBlockNum > record.lastClaimBlockNum
+            ? record.lastUpdateBlockNum
+            : record.lastClaimBlockNum;
         require(
-            record.lastClaimBlockNum + claimInterval < block.number,
+            anchor + claimInterval < block.number,
             "Too soon"
         );
 

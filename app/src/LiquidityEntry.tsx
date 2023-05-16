@@ -56,7 +56,8 @@ const LiquidityEntry: FC<{
     const userToTotalBaseLiquidityRatio = liquidityInfo.totalBaseLiquidity.gt(0) ? Number(liquidityInfo.baseAmt.div(liquidityInfo.totalBaseLiquidity).toNumber().toFixed(3)) : 0
     const userToTotalQuoteLiquidityRatio = liquidityInfo.totalQuoteLiquidity.gt(0) ? Number(liquidityInfo.quoteAmt.div(liquidityInfo.totalQuoteLiquidity).toNumber().toFixed(3)) : 0
 
-    const claimable = (blockMeta.currentBlockNum >= liquidityInfo.lastUpdateBlockNum + liquidityInfo.claimInterval) && (userToTotalBaseLiquidityRatio > 0 || userToTotalQuoteLiquidityRatio > 0)
+    const anchorBlockNum = liquidityInfo.lastUpdateBlockNum > liquidityInfo.lastClaimBlockNum ? liquidityInfo.lastUpdateBlockNum : liquidityInfo.lastClaimBlockNum
+    const claimable = (blockMeta.currentBlockNum >= anchorBlockNum + liquidityInfo.claimInterval) && (userToTotalBaseLiquidityRatio > 0 || userToTotalQuoteLiquidityRatio > 0)
     return (
         <div>
             <div>Provide Liquidity</div>
@@ -82,7 +83,7 @@ const LiquidityEntry: FC<{
                             <div className='font-bold'>Earn Liquidity Reward</div>
                             <div className='grid grid-cols-2 my-1'>
                                 <div>Current block: {blockMeta.currentBlockNum}</div>
-                                <div> Next claim block: {blockMeta.currentBlockNum < liquidityInfo.lastUpdateBlockNum + liquidityInfo.claimInterval ? liquidityInfo.lastUpdateBlockNum + liquidityInfo.claimInterval : `${blockMeta.currentBlockNum} (Claimable)`}</div>
+                                <div> Next claim block: {blockMeta.currentBlockNum < anchorBlockNum + liquidityInfo.claimInterval ? anchorBlockNum + liquidityInfo.claimInterval : `${blockMeta.currentBlockNum} (Claimable)`}</div>
                             </div>
                             <div className='grid grid-cols-2 my-1'>
                                 <div>Total BRL fees: {tokenQtyToNumber(
@@ -103,22 +104,22 @@ const LiquidityEntry: FC<{
                                     liquidityInfo.totalQuoteFees,
                                     quoteToken.decimals
                                 )}{' '}({(userToTotalQuoteLiquidityRatio * 100).toFixed(0).toString() + '%'})</div> : <></>}
-                                <button
-                                    className={clsx(claimable ? "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" : "bg-blue-500 text-white font-bold py-2 px-4 rounded opacity-20 cursor-not-allowed")}
-                                    onClick={async () => {
-                                        await sendClaimFees(
-                                            web3,
-                                            account,
-                                            swapContractAddress,
-                                        );
-                                    }}
-                                    disabled={!claimable}
-                                >
-                                    {" "}
-                                    Claim{" "}
-                                </button>
-                            </div>
 
+                            </div>
+                            <button
+                                className={clsx(claimable ? "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" : "bg-blue-500 text-white font-bold py-2 px-4 rounded opacity-20 cursor-not-allowed")}
+                                onClick={async () => {
+                                    await sendClaimFees(
+                                        web3,
+                                        account,
+                                        swapContractAddress,
+                                    );
+                                }}
+                                disabled={!claimable}
+                            >
+                                {" "}
+                                Claim{" "}
+                            </button>
 
                         </div>
                         : <></>
